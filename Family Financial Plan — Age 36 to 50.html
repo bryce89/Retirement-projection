@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Financial Plan</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#0a0a0f; --surface:#111118; --border:#1e1e2e;
+    --cash:#00e5a0; --dhhf:#a855f7; --gap:#38bdf8; --total:#facc15;
+    --text:#e8e8f0; --muted:#6b6b80; --red:#f87171;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;padding:20px 14px 40px}
+  h1{font-size:clamp(1.3rem,4vw,1.9rem);font-weight:800;letter-spacing:-0.03em;margin-bottom:2px}
+  .sub{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted);margin-bottom:14px;letter-spacing:.05em}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  .cycle-banner{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;overflow-x:auto}
+  .cycle-title{font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+  .cycle-track{display:flex;gap:3px;min-width:max-content}
+  .cb{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.58rem;border-radius:6px;padding:5px 6px;min-width:36px;line-height:1.4}
+  .cb.w{background:rgba(0,229,160,.1);color:var(--cash);border:1px solid rgba(0,229,160,.2)}
+  .cb.l{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+  .cb.end{background:rgba(250,204,21,.1);color:var(--total);border:1px solid rgba(250,204,21,.3)}
+  .cb .ic{font-size:.7rem}
+
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .cc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
+  .cc.full{grid-column:1/-1}
+  .cl{font-size:.6rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+  .sw{display:flex;align-items:center;gap:8px}
+  input[type=range]{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 6px rgba(0,0,0,.5);cursor:pointer}
+  .sv{font-size:.72rem;color:var(--text);min-width:52px;text-align:right}
+
+  .hero{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;text-align:center;position:relative;overflow:hidden}
+  .hero::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--total)}
+  .hero-label{font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+  .hero-val{font-size:1.8rem;font-weight:800;color:var(--total);letter-spacing:-.02em}
+  .hero-sub{font-size:.65rem;color:var(--muted);margin-top:4px}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+  .card-cash::before{background:var(--cash)} .card-dhhf::before{background:var(--dhhf)} .card-gap::before{background:var(--gap)}
+  .cn{font-size:.6rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+  .cv{font-size:1rem;font-weight:800;letter-spacing:-.02em}
+  .cg{font-size:.58rem;color:var(--muted);margin-top:3px;line-height:1.4}
+
+  .chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px}
+  .ct{font-size:.68rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+  canvas{width:100%!important}
+  .toggles{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .tb{font-size:.62rem;padding:4px 9px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;letter-spacing:.04em;transition:all .2s}
+  .tb.a-cash{border-color:var(--cash);color:var(--cash);background:rgba(0,229,160,.08)}
+  .tb.a-dhhf{border-color:var(--dhhf);color:var(--dhhf);background:rgba(168,85,247,.08)}
+  .tb.a-gap{border-color:var(--gap);color:var(--gap);background:rgba(56,189,248,.08)}
+  .tb.a-total{border-color:var(--total);color:var(--total);background:rgba(250,204,21,.08)}
+
+  .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px}
+  .table-scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:420px}
+  th{font-size:.57rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;padding:0 0 7px;text-align:right;border-bottom:1px solid var(--border)}
+  th:first-child{text-align:left}
+  td{font-size:.63rem;padding:6px 0;text-align:right;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text)}
+  td:first-child{text-align:left;color:var(--muted)}
+  tr:last-child td{border-bottom:none}
+  tr.lr td{opacity:.7} tr.lr td:first-child{color:var(--red);opacity:1}
+  tr.fr td{border-top:1px solid var(--border);font-weight:700}
+
+  .notes{font-size:.6rem;color:var(--muted);margin-top:12px;line-height:1.7;border-top:1px solid var(--border);padding-top:10px}
+  .legend-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+  .legend-item{font-size:.6rem;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .ld{width:8px;height:8px;border-radius:50%}
+</style>
+</head>
+<body>
+
+<h1>Family Plan · Age 50</h1>
+<div class="sub mono">// AUD · COUPLE · 2YR WORK / 1YR GAP · $120K GAP YEAR SPEND</div>
+
+<div class="cycle-banner">
+  <div class="cycle-title mono">// Work / Gap Year Cycle</div>
+  <div class="cycle-track" id="cyc"></div>
+</div>
+
+<div class="controls">
+  <div class="cc">
+    <div class="cl mono"><span class="dot" style="background:var(--cash)"></span>Cash Savings /wk</div>
+    <div class="sw"><input type="range" id="rCash" min="0" max="5000" step="50" value="1700"><span class="sv mono" id="vCash">$1,700</span></div>
+  </div>
+  <div class="cc">
+    <div class="cl mono"><span class="dot" style="background:var(--dhhf)"></span>DHHF /wk</div>
+    <div class="sw"><input type="range" id="rDhhf" min="0" max="3000" step="50" value="500"><span class="sv mono" id="vDhhf">$500</span></div>
+  </div>
+  <div class="cc">
+    <div class="cl mono"><span class="dot" style="background:var(--gap)"></span>Gap Year Fund /wk</div>
+    <div class="sw"><input type="range" id="rGap" min="0" max="3000" step="50" value="1000"><span class="sv mono" id="vGap">$1,000</span></div>
+  </div>
+  <div class="cc">
+    <div class="cl mono">Gap Year Spend</div>
+    <div class="sw"><input type="range" id="rSpend" min="50000" max="200000" step="5000" value="120000"><span class="sv mono" id="vSpend">$120k</span></div>
+  </div>
+  <div class="cc">
+    <div class="cl mono">DHHF Annual Return</div>
+    <div class="sw"><input type="range" id="rRate" min="3" max="20" step="0.5" value="9"><span class="sv mono" id="vRate">9.0%</span></div>
+  </div>
+  <div class="cc">
+    <div class="cl mono">Cash Savings Interest</div>
+    <div class="sw"><input type="range" id="rCashRate" min="0" max="10" step="0.5" value="5"><span class="sv mono" id="vCashRate">5.0%</span></div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-label mono">Total Wealth at Age 50</div>
+  <div class="hero-val mono" id="heroVal">—</div>
+  <div class="hero-sub mono" id="heroSub">—</div>
+</div>
+
+<div class="cards">
+  <div class="card card-cash">
+    <div class="cn mono"><span class="dot" style="background:var(--cash)"></span>Cash</div>
+    <div class="cv mono" style="color:var(--cash)" id="pcash">—</div>
+    <div class="cg mono" id="gcash">—</div>
+  </div>
+  <div class="card card-dhhf">
+    <div class="cn mono"><span class="dot" style="background:var(--dhhf)"></span>DHHF</div>
+    <div class="cv mono" style="color:var(--dhhf)" id="pdhhf">—</div>
+    <div class="cg mono" id="gdhhf">—</div>
+  </div>
+  <div class="card card-gap">
+    <div class="cn mono"><span class="dot" style="background:var(--gap)"></span>Gap Fund</div>
+    <div class="cv mono" style="color:var(--gap)" id="pgap">—</div>
+    <div class="cg mono" id="ggap">—</div>
+  </div>
+</div>
+
+<div class="chart-wrap">
+  <div class="ct mono">// Wealth Trajectory · Age 36 → 50</div>
+  <div class="toggles">
+    <button class="tb a-cash mono" id="t0" onclick="tog(0)">Cash</button>
+    <button class="tb a-dhhf mono" id="t1" onclick="tog(1)">DHHF</button>
+    <button class="tb a-gap mono" id="t2" onclick="tog(2)">Gap Fund</button>
+    <button class="tb a-total mono" id="t3" onclick="tog(3)">Total</button>
+  </div>
+  <canvas id="chart" height="240"></canvas>
+</div>
+
+<div class="tbl-wrap">
+  <div class="ct mono">// Year-by-Year Breakdown</div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Age</th><th>Cash</th><th>DHHF</th><th>Gap Fund</th><th>Net Total</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="legend-row">
+    <div class="legend-item"><div class="ld" style="background:var(--cash)"></div>💼 Working</div>
+    <div class="legend-item"><div class="ld" style="background:var(--red)"></div>✈️ Gap year (spend $120k)</div>
+  </div>
+  <div class="notes mono" id="notes"></div>
+</div>
+
+<script>
+const fmt=n=>'$'+Math.round(n).toLocaleString('en-AU');
+const fmtK=n=>n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1000?'$'+(n/1000).toFixed(0)+'k':'$'+Math.round(n);
+const START=36,END=50,YRS=14,INIT_CASH=20000;
+
+function buildCycle(){const c=[];let y=0;while(y<YRS){for(let i=0;i<2&&y<YRS;i++,y++)c.push('w');if(y<YRS){c.push('l');y++}}return c}
+const CYCLE=buildCycle();
+
+function renderCycle(){
+  const el=document.getElementById('cyc');el.innerHTML='';
+  CYCLE.forEach((p,i)=>{const d=document.createElement('div');d.className=`cb mono ${p==='w'?'w':'l'}`;d.innerHTML=`<span class="ic">${p==='w'?'💼':'✈️'}</span>${START+i}`;el.appendChild(d)});
+  const e=document.createElement('div');e.className='cb mono end';e.innerHTML='<span class="ic">🎯</span>50';el.appendChild(e);
+}
+
+let chart=null,vis=[true,true,true,true];
+
+function calc(){
+  const wCash=+document.getElementById('rCash').value;
+  const wDhhf=+document.getElementById('rDhhf').value;
+  const wGap=+document.getElementById('rGap').value;
+  const spend=+document.getElementById('rSpend').value;
+  const rate=+document.getElementById('rRate').value/100;
+  const cashRate=+document.getElementById('rCashRate').value/100;
+  const wr=Math.pow(1+rate,1/52)-1;
+  const cr=Math.pow(1+cashRate,1/52)-1;
+
+  let cash=INIT_CASH, dhhf=0, gapFund=0;
+  const dCash=[cash],dDhhf=[0],dGap=[0],dTotal=[cash];
+
+  let totalContribDhhf=0, totalContribCash=0, totalContribGap=0, totalSpent=0, totalCashSpent=0;
+
+  for(let y=0;y<YRS;y++){
+    const phase=CYCLE[y];
+    if(phase==='w'){
+      for(let w=0;w<52;w++){
+        cash=cash*(1+cr)+wCash;
+        dhhf=dhhf*(1+wr)+wDhhf;
+        gapFund+=wGap;
+      }
+      totalContribCash+=wCash*52;
+      totalContribDhhf+=wDhhf*52;
+      totalContribGap+=wGap*52;
+    } else {
+      // Gap year: DHHF & cash grow, spend from gap fund first then cash
+      let toSpend=spend;
+      const fromGap=Math.min(gapFund,toSpend);
+      gapFund-=fromGap; toSpend-=fromGap;
+      const fromCash=Math.min(cash,toSpend);
+      cash-=fromCash; toSpend-=fromCash;
+      totalCashSpent+=fromCash;
+      for(let w=0;w<52;w++){dhhf=dhhf*(1+wr);cash=cash*(1+cr)}
+      totalSpent+=spend;
+    }
+    dCash.push(cash); dDhhf.push(dhhf); dGap.push(gapFund);
+    dTotal.push(cash+dhhf+gapFund);
+  }
+
+  return {dCash,dDhhf,dGap,dTotal,cash,dhhf,gapFund,totalContribDhhf,totalContribCash,totalContribGap,totalSpent,totalCashSpent,rate,cashRate,wCash,wDhhf,wGap,spend};
+}
+
+function render(){
+  const r=calc();
+  const total=r.cash+r.dhhf+r.gapFund;
+  const workYrs=CYCLE.filter(c=>c==='w').length;
+  const gapYrs=YRS-workYrs;
+
+  document.getElementById('heroVal').textContent=fmt(total);
+  document.getElementById('heroSub').textContent=`${workYrs} work yrs · ${gapYrs} gap yrs · ${fmt(r.totalSpent)} spent on gap years`;
+
+  document.getElementById('pcash').textContent=fmt(r.cash);
+  const cashInterest=r.cash-INIT_CASH-r.totalContribCash+r.totalCashSpent;
+  document.getElementById('gcash').textContent=`+${fmt(Math.max(0,cashInterest))} interest`;
+  document.getElementById('pdhhf').textContent=fmt(r.dhhf);
+  const dhhfGain=r.dhhf-r.totalContribDhhf;
+  document.getElementById('gdhhf').textContent=`+${fmt(dhhfGain)} gains`;
+  document.getElementById('pgap').textContent=fmt(r.gapFund);
+  document.getElementById('ggap').textContent=r.gapFund>0?`${fmt(r.gapFund)} surplus`:'Fully used';
+
+  // Table
+  document.getElementById('tbody').innerHTML=CYCLE.map((p,i)=>{
+    const yr=i+1,age=START+i,isL=p==='l';
+    return `<tr class="${isL?'lr':''}"><td>${age}→${age+1} ${isL?'✈️':'💼'}</td>
+      <td style="color:var(--cash)">${fmt(r.dCash[yr])}</td>
+      <td style="color:var(--dhhf)">${fmt(r.dDhhf[yr])}</td>
+      <td style="color:var(--gap)">${fmt(r.dGap[yr])}</td>
+      <td style="color:var(--total)">${fmt(r.dTotal[yr])}</td></tr>`;
+  }).join('')+`<tr class="fr"><td>🎯 Age 50</td>
+    <td style="color:var(--cash)">${fmt(r.cash)}</td>
+    <td style="color:var(--dhhf)">${fmt(r.dhhf)}</td>
+    <td style="color:var(--gap)">${fmt(r.gapFund)}</td>
+    <td style="color:var(--total)">${fmt(total)}</td></tr>`;
+
+  document.getElementById('notes').textContent=
+    `Assumptions: ${(r.rate*100).toFixed(1)}% p.a. DHHF return (compounded weekly). ${(r.cashRate*100).toFixed(1)}% p.a. on cash savings (compounded weekly). Gap fund = no growth. `+
+    `Gap year spend (${fmt(r.spend)}) deducted from gap fund first, shortfall from cash. `+
+    `Work: $${r.wCash.toLocaleString()}/wk cash + $${r.wDhhf.toLocaleString()}/wk DHHF + $${r.wGap.toLocaleString()}/wk gap fund. `+
+    `Starting cash: $20,000. DHHF & gap fund start at $0.`;
+
+  // Chart
+  const labels=[String(START),...CYCLE.map((_,i)=>String(START+i+1))];
+  const ds=[
+    {label:'Cash',data:r.dCash,borderColor:'#00e5a0',tension:.4,pointRadius:0,borderWidth:2,fill:false},
+    {label:'DHHF',data:r.dDhhf,borderColor:'#a855f7',tension:.4,pointRadius:0,borderWidth:2,fill:false},
+    {label:'Gap Fund',data:r.dGap,borderColor:'#38bdf8',tension:0,pointRadius:3,pointBackgroundColor:'#38bdf8',borderWidth:1.5,fill:false,borderDash:[4,3]},
+    {label:'Total',data:r.dTotal,borderColor:'#facc15',backgroundColor:'rgba(250,204,21,.06)',tension:.4,pointRadius:0,borderWidth:2.5,fill:true},
+  ].map((d,i)=>({...d,hidden:!vis[i]}));
+
+  if(chart){chart.data.labels=labels;chart.data.datasets=ds;chart.update('none')}
+  else{
+    chart=new Chart(document.getElementById('chart').getContext('2d'),{
+      type:'line',data:{labels,datasets:ds},
+      options:{
+        responsive:true,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},tooltip:{
+          backgroundColor:'#1a1a28',borderColor:'#2e2e40',borderWidth:1,
+          titleColor:'#6b6b80',bodyColor:'#e8e8f0',
+          titleFont:{family:'JetBrains Mono',size:10},bodyFont:{family:'JetBrains Mono',size:11},
+          callbacks:{
+            title:items=>{const idx=items[0].dataIndex;const age=START+idx;if(idx===0)return`Age ${age} (start)`;return`Age ${age}  ${CYCLE[idx-1]==='w'?'💼 Working':'✈️ Gap Year'}`},
+            label:ctx=>` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`
+          }
+        }},
+        scales:{
+          x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b6b80',font:{family:'JetBrains Mono',size:9}}},
+          y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b6b80',font:{family:'JetBrains Mono',size:9},callback:v=>fmtK(v)}}
+        }
+      }
+    });
+  }
+}
+
+function tog(i){vis[i]=!vis[i];const cls=['a-cash','a-dhhf','a-gap','a-total'];document.getElementById('t'+i).classList.toggle(cls[i],vis[i]);if(chart){chart.data.datasets[i].hidden=!vis[i];chart.update()}}
+
+const sliders=[
+  {id:'rCash',vid:'vCash',fmt:v=>'$'+v.toLocaleString()},
+  {id:'rDhhf',vid:'vDhhf',fmt:v=>'$'+v.toLocaleString()},
+  {id:'rGap',vid:'vGap',fmt:v=>'$'+v.toLocaleString()},
+  {id:'rSpend',vid:'vSpend',fmt:v=>fmtK(v)},
+  {id:'rRate',vid:'vRate',fmt:v=>v.toFixed(1)+'%'},
+  {id:'rCashRate',vid:'vCashRate',fmt:v=>v.toFixed(1)+'%'},
+];
+sliders.forEach(s=>{
+  const el=document.getElementById(s.id);
+  el.addEventListener('input',()=>{document.getElementById(s.vid).textContent=s.fmt(+el.value);render()});
+});
+
+renderCycle();render();
+</script>
+</body>
+</html>
